@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f6f8fc;
+  --foreground: #0c1019;
+}
+
+html, body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer base {
+  body { @apply font-sans; }
+  h1, h2, h3, h4 { @apply tracking-tight text-ink-900; }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl bg-white shadow-card border border-ink-100/70;
+  }
+  .card-hover {
+    @apply card transition hover:-translate-y-0.5 hover:shadow-pop;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-4 focus:ring-brand/20 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:bg-brand-700 shadow-pop;
+  }
+  .btn-secondary {
+    @apply btn bg-white text-ink-800 border border-ink-200 hover:border-brand-300 hover:text-brand-700;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-600 hover:bg-ink-100;
+  }
+  .btn-danger {
+    @apply btn bg-danger-500 text-white hover:bg-danger-600;
+  }
+  .input {
+    @apply w-full rounded-xl border border-ink-200 bg-white px-4 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand/15;
+  }
+  .label {
+    @apply text-xs font-semibold uppercase tracking-wider text-ink-500;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium;
+  }
+  .chip-success { @apply chip bg-success-50 text-success-700; }
+  .chip-warning { @apply chip bg-warning-50 text-warning-700; }
+  .chip-danger  { @apply chip bg-danger-50  text-danger-700; }
+  .chip-info    { @apply chip bg-brand-50   text-brand-700; }
+  .chip-muted   { @apply chip bg-ink-100    text-ink-600; }
+
+  .section-title {
+    @apply text-lg font-semibold text-ink-900;
+  }
+  .muted {
+    @apply text-sm text-ink-500;
+  }
+  .grid-bg {
+    background-image:
+      radial-gradient(circle at 1px 1px, rgba(15,23,42,0.05) 1px, transparent 0);
+    background-size: 24px 24px;
+  }
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/60;
+  }
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #dde1ec; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #bac1d3; }
