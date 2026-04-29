@@ -111,18 +111,7 @@ CONTRACT TEXT:
 {text}
 """
 
-SCORE_PROMPT = """
-Given the JSON array of rental-contract clauses below, compute an overall
-"tenant fairness" score from 0 to 100 (100 = perfectly fair lease).
 
-Use this formula: start at 100, subtract 12 for each red clause and 4 for each
-yellow clause, floor at 0.
-
-Return ONLY a single integer, nothing else.
-
-CLAUSES JSON:
-{clauses_json}
-"""
 
 
 def scan_clauses(contract: Contract, user=None) -> list[dict]:
@@ -159,14 +148,18 @@ def scan_clauses(contract: Contract, user=None) -> list[dict]:
         repair = re.sub(r"```(?:json)?", "", repair).strip()
         clauses_data = json.loads(repair)
 
-    # ---- compute score ----
-    try:
-        score_raw = _call(model, SCORE_PROMPT.format(clauses_json=json.dumps(clauses_data)[:4000]))
-        score = max(0, min(100, int(re.search(r"\d+", score_raw).group())))
-    except Exception:
-        reds    = sum(1 for c in clauses_data if c.get("severity") == "red")
-        yellows = sum(1 for c in clauses_data if c.get("severity") == "yellow")
-        score   = max(0, 100 - reds * 12 - yellows * 4)
+    # ---- compute score (deterministic weighted ratio) ----
+    # score = 100 × (greens×1 + yellows×0.5) / total_clauses
+    # This fairly reflects a contract with mostly green clauses even if one is red.
+    reds    = sum(1 for c in clauses_data if c.get("severity") == "red")
+    yellows = sum(1 for c in clauses_data if c.get("severity") == "yellow")
+    greens  = sum(1 for c in clauses_data if c.get("severity") == "green")
+    total   = reds + yellows + greens
+    if total > 0:
+        score = round(100 * (greens + yellows * 0.5) / total)
+    else:
+        score = 50
+    score = max(0, min(100, score))
 
     # ---- persist ----
     contract.clauses.all().delete()
