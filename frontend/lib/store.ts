@@ -7,19 +7,19 @@ export type User = {
   email: string;
   first_name?: string;
   last_name?: string;
-  profile?: { language: "en" | "de" };
+  profile?: { language: "en" | "de" | "tr" | "ar" | "es"};
 };
 
 type AuthStore = {
   user: User | null;
   access: string | null;
   refresh: string | null;
-  language: "en" | "de";
+  language: "en" | "de" | "tr" | "ar" | "es";
   _hasHydrated: boolean;
 
   setTokens: (access: string, refresh: string) => void;
   setUser: (user: User) => void;
-  setLanguage: (lang: "en" | "de") => void;
+  setLanguage: (lang: "en" | "de" | "tr" | "ar" | "es") => void;
   logout: () => void;
   setHasHydrated: (v: boolean) => void;
 };
