@@ -6,8 +6,11 @@ import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 
 const LANGS = [
-  { code: "en" as const, label: "English",  sub: "Continue in English", flag: "🇬🇧" },
-  { code: "de" as const, label: "Deutsch",   sub: "Auf Deutsch fortfahren", flag: "🇩🇪" },
+  { code: "en" as const, label: "English", sub: "Continue in English", flag: "🇬🇧" },
+  { code: "de" as const, label: "Deutsch", sub: "Auf Deutsch fortfahren", flag: "🇩🇪" },
+  { code: "tr" as const, label: "Türkçe", sub: "Türkçe devam et", flag: "🇹🇷" },
+  { code: "ar" as const, label: "العربية", sub: "تابع بالعربية", flag: "🇸🇦" },
+  { code: "es" as const, label: "Español", sub: "Continuar en español", flag: "🇪🇸" },
 ];
 
 export default function SelectLanguagePage() {

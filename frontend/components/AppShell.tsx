@@ -130,25 +130,33 @@ export default function AppShell({ children, title, subtitle, actions }: {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="hidden items-center rounded-full border border-ink-200 bg-white p-0.5 text-xs sm:inline-flex">
-                {(["en", "de"] as const).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setLanguage(l)}
-                    className={`rounded-full px-3 py-1 font-semibold transition ${
-                      language === l ? "bg-brand-600 text-white" : "text-ink-500 hover:text-ink-900"
-                    }`}
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+              <div className="relative hidden sm:block">
+  <select
+    value={language}
+    onChange={(e) => setLanguage(e.target.value as "en" | "de" | "tr" | "ar" | "es")}
+    className="rounded-full border border-ink-200 bg-white py-1 pl-3 pr-8 text-xs font-semibold text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand/20 cursor-pointer appearance-none"
+  >
+    <option value="en">🇬🇧 EN</option>
+    <option value="de">🇩🇪 DE</option>
+    <option value="tr">🇹🇷 TR</option>
+    <option value="ar">🇸🇦 AR</option>
+    <option value="es">🇪🇸 ES</option>
+  </select>
+  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-ink-400 text-xs">▾</span>
+</div>
               {actions}
             </div>
           </div>
         </header>
 
         <main className="px-5 py-8 sm:px-8 sm:py-10">{children}</main>
+        <footer className="border-t border-ink-100 bg-white px-5 py-4 sm:px-8 lg:pl-72">
+  <p className="text-xs text-ink-400">
+    LeaseLens provides AI-generated information for general guidance only and does not constitute legal advice.
+    Your data is processed securely and not shared with third parties.
+    By using this service you agree to our privacy practices.
+  </p>
+</footer>
       </div>
     </div>
   );
