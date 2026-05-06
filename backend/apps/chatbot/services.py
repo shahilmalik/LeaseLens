@@ -33,7 +33,7 @@ You ALWAYS:
 - Cite relevant German law sections or BGH rulings when applicable
 - Keep answers clear, practical and jargon-free
 - Offer a concrete next step the tenant can take
-- Respond in {language} (English if "en", German if "de")
+- Respond ENTIRELY in {language}. Do not switch languages mid-response.
 
 You NEVER give binding legal advice — always recommend a Mieterverein or lawyer
 for formal disputes.
@@ -44,6 +44,25 @@ CONTRACT TEXT (may be empty if no contract is loaded):
 CONVERSATION HISTORY:
 {history}
 """
+
+# Map frontend lang codes → full language name for Gemini
+LANG_NAMES = {
+    "en": "English",
+    "de": "German",
+    "tr": "Turkish",
+    "ru": "Russian",
+    "pl": "Polish",
+    "ar": "Arabic",
+    "ku": "Kurdish (Kurmanji)",
+    "sr": "Serbo-Croatian",
+    "ro": "Romanian",
+    "it": "Italian",
+    "el": "Greek",
+    "sq": "Albanian",
+    "es": "Spanish",
+    "fr": "French",
+    "vi": "Vietnamese",
+}
 
 
 def answer(session: ChatSession, question: str, language: str = "en") -> str:
@@ -63,7 +82,7 @@ def answer(session: ChatSession, question: str, language: str = "en") -> str:
     history = "\n".join(history_lines) if history_lines else "(start of conversation)"
 
     prompt = SYSTEM_PROMPT.format(
-        language="German" if language == "de" else "English",
+        language=LANG_NAMES.get(language, "English"),
         contract_text=contract_text[:8000],
         history=history,
     ) + f"\n\nUSER: {question}\n\nASSISTANT:"

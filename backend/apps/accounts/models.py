@@ -7,7 +7,20 @@ class Profile(models.Model):
 
     LANGUAGE_CHOICES = [
         ("en", "English"),
-        ("de", "Deutsch"),
+        ("de", "German"),
+        ("tr", "Turkish"),
+        ("ru", "Russian"),
+        ("pl", "Polish"),
+        ("ar", "Arabic"),
+        ("ku", "Kurdish"),
+        ("sr", "Serbo-Croatian"),
+        ("ro", "Romanian"),
+        ("it", "Italian"),
+        ("el", "Greek"),
+        ("sq", "Albanian"),
+        ("es", "Spanish"),
+        ("fr", "French"),
+        ("vi", "Vietnamese"),
     ]
 
     user = models.OneToOneField(

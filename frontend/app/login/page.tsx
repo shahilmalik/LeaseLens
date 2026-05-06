@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, clearAuth } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
 
 function LoginForm() {
@@ -53,6 +53,8 @@ function LoginForm() {
 
     setLoading(true);
     setServerError(null);
+    // Wipe any stale token so the request interceptor doesn't send it
+    clearAuth();
     try {
       if (mode === "register") {
         await api.post("/auth/register/", {

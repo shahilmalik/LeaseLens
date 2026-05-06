@@ -4,15 +4,11 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store";
-
-const LANGS = [
-  { code: "en" as const, label: "English",  sub: "Continue in English", flag: "🇬🇧" },
-  { code: "de" as const, label: "Deutsch",   sub: "Auf Deutsch fortfahren", flag: "🇩🇪" },
-];
+import { LANGUAGES, type LangCode } from "@/lib/i18n";
 
 export default function SelectLanguagePage() {
   const router = useRouter();
-  const { setLanguage, user, _hasHydrated, access } = useAuthStore();
+  const { setLanguage, user, _hasHydrated, access, language } = useAuthStore();
 
   useEffect(() => {
     if (!_hasHydrated) return;
@@ -24,35 +20,50 @@ export default function SelectLanguagePage() {
   }
   if (!user) return null;
 
-  async function pick(code: "en" | "de") {
+  async function pick(code: LangCode) {
     setLanguage(code);
     try {
-      await api.patch("/profile/", { language: code }, {
-        headers: { Authorization: `Bearer ${access}` },
-      });
+      await api.patch("/profile/", { language: code });
     } catch { /* non-blocking */ }
-    router.push("/upload");
+    router.push("/dashboard");
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-slate-50 p-8">
       <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Step 1 of 2</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">LeaseLens</p>
         <h1 className="mt-2 text-3xl font-bold text-slate-900">
           Hey {user.first_name || user.username}, choose your language
         </h1>
-        <p className="mt-2 text-slate-500">Wähle deine Sprache · Choose your language</p>
+        <p className="mt-2 text-slate-500">Select the language you want to use across the app</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-        {LANGS.map((l) => (
-          <button key={l.code} onClick={() => pick(l.code)}
-            className="group flex w-48 flex-col items-center gap-3 rounded-2xl border-2 border-transparent bg-white p-8 shadow transition hover:border-brand hover:shadow-lg">
-            <span className="text-5xl">{l.flag}</span>
-            <span className="text-lg font-semibold text-slate-800 group-hover:text-brand">{l.label}</span>
-            <span className="text-xs text-slate-400">{l.sub}</span>
-          </button>
-        ))}
+      <div className="grid w-full max-w-3xl grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+        {LANGUAGES.map((l) => {
+          const active = language === l.code;
+          return (
+            <button
+              key={l.code}
+              onClick={() => pick(l.code as LangCode)}
+              className={`group flex flex-col items-center gap-2 rounded-2xl border-2 bg-white p-5 shadow-sm transition hover:shadow-md ${
+                active
+                  ? "border-blue-600 shadow-md ring-2 ring-blue-100"
+                  : "border-transparent hover:border-blue-300"
+              }`}
+            >
+              <span className="text-3xl">{l.flag}</span>
+              <span className={`text-sm font-semibold ${active ? "text-blue-700" : "text-slate-800 group-hover:text-blue-600"}`}>
+                {l.native}
+              </span>
+              <span className="text-[11px] text-slate-400">{l.label}</span>
+              {active && (
+                <span className="mt-1 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                  ✓ Active
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </main>
   );

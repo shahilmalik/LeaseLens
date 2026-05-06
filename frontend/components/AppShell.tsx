@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/lib/store";
+import { LANGUAGES, makeTFn, isRTL, type LangCode } from "@/lib/i18n";
 
-type NavItem = { href: string; label: { en: string; de: string }; icon: ReactNode };
+type NavItem = { href: string; labelKey: string; icon: ReactNode };
 
 const NAV: NavItem[] = [
-  { href: "/dashboard",  label: { en: "Dashboard", de: "Übersicht" },     icon: <IconHome /> },
-  { href: "/scan",       label: { en: "Scan Contract", de: "Vertrag scannen" }, icon: <IconScan /> },
-  { href: "/rent-check", label: { en: "Rent Check", de: "Mietpreisbremse" }, icon: <IconChart /> },
-  { href: "/assistant",  label: { en: "AI Assistant", de: "KI-Assistent" }, icon: <IconChat /> },
-  { href: "/deadlines",  label: { en: "Deadlines", de: "Fristen" },        icon: <IconClock /> },
-  { href: "/profile",    label: { en: "Profile", de: "Profil" },           icon: <IconUser /> },
+  { href: "/dashboard",  labelKey: "Dashboard",    icon: <IconHome /> },
+  { href: "/scan",       labelKey: "Scan Contract", icon: <IconScan /> },
+  { href: "/rent-check", labelKey: "Rent Check",    icon: <IconChart /> },
+  { href: "/assistant",  labelKey: "AI Assistant",  icon: <IconChat /> },
+  { href: "/deadlines",  labelKey: "Deadlines",     icon: <IconClock /> },
+  { href: "/profile",    labelKey: "Profile",       icon: <IconUser /> },
 ];
 
 export default function AppShell({ children, title, subtitle, actions }: {
@@ -26,11 +27,31 @@ export default function AppShell({ children, title, subtitle, actions }: {
   const pathname = usePathname();
   const { user, language, logout, _hasHydrated, setLanguage } = useAuthStore();
   const [open, setOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+  const t = makeTFn(language as LangCode);
+  const currentLang = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[0];
+
+  // Close lang dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useEffect(() => {
     if (!_hasHydrated) return;
     if (!user) router.replace("/login");
   }, [_hasHydrated, user, router]);
+
+  // Apply RTL direction to <html> when needed
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = isRTL(language as LangCode) ? "rtl" : "ltr";
+    }
+  }, [language]);
 
   if (!_hasHydrated) {
     return (
@@ -41,7 +62,6 @@ export default function AppShell({ children, title, subtitle, actions }: {
   }
   if (!user) return null;
 
-  const de = language === "de";
   const initials =
     (user.first_name?.[0] || user.username?.[0] || "?").toUpperCase() +
     (user.last_name?.[0] || "").toUpperCase();
@@ -75,7 +95,7 @@ export default function AppShell({ children, title, subtitle, actions }: {
                 <span className={active ? "text-brand-600" : "text-ink-400 group-hover:text-ink-600"}>
                   {item.icon}
                 </span>
-                {de ? item.label.de : item.label.en}
+                {t(item.labelKey as Parameters<typeof t>[0])}
               </Link>
             );
           })}
@@ -98,7 +118,7 @@ export default function AppShell({ children, title, subtitle, actions }: {
               onClick={() => { logout(); router.push("/"); }}
               className="mt-3 w-full rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-xs font-medium text-ink-600 hover:bg-ink-50"
             >
-              {de ? "Abmelden" : "Sign out"}
+              {t("Sign out")}
             </button>
           </div>
         </div>
@@ -130,18 +150,43 @@ export default function AppShell({ children, title, subtitle, actions }: {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="hidden items-center rounded-full border border-ink-200 bg-white p-0.5 text-xs sm:inline-flex">
-                {(["en", "de"] as const).map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setLanguage(l)}
-                    className={`rounded-full px-3 py-1 font-semibold transition ${
-                      language === l ? "bg-brand-600 text-white" : "text-ink-500 hover:text-ink-900"
-                    }`}
-                  >
-                    {l.toUpperCase()}
-                  </button>
-                ))}
+              {/* ── Language picker dropdown ── */}
+              <div className="relative hidden sm:block" ref={langRef}>
+                <button
+                  onClick={() => setLangOpen((v) => !v)}
+                  className="flex items-center gap-1.5 rounded-full border border-ink-200 bg-white px-3 py-1.5 text-xs font-semibold text-ink-700 hover:bg-ink-50 transition"
+                >
+                  <span>{currentLang.flag}</span>
+                  <span>{currentLang.native}</span>
+                  <svg viewBox="0 0 24 24" className="h-3 w-3 text-ink-400" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+
+                {langOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 rounded-2xl border border-ink-100 bg-white shadow-xl overflow-hidden">
+                    <div className="max-h-80 overflow-y-auto p-1.5">
+                      {LANGUAGES.map((l) => {
+                        const active = language === l.code;
+                        return (
+                          <button
+                            key={l.code}
+                            onClick={() => {
+                              setLanguage(l.code as LangCode);
+                              setLangOpen(false);
+                              try { fetch("/api/v1/profile/", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: l.code }) }); } catch {}
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
+                              active ? "bg-brand-50 text-brand-700 font-semibold" : "text-ink-700 hover:bg-ink-50"
+                            }`}
+                          >
+                            <span className="text-lg">{l.flag}</span>
+                            <span className="flex-1 text-left">{l.native}</span>
+                            {active && <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand-600" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m5 13 4 4L19 7"/></svg>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
               {actions}
             </div>

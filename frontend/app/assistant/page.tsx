@@ -5,30 +5,32 @@ import Link from "next/link";
 import AppShell from "@/components/AppShell";
 import { useAuthStore } from "@/lib/store";
 import { api } from "@/lib/api";
+import { makeTFn, type LangCode } from "@/lib/i18n";
 
 type Msg = { role: "user" | "assistant"; text: string };
-
 type Contract = { id: number; original_filename: string; score: number | null };
 
-const SUGGESTIONS_EN = [
-  "Is my cosmetic repair clause enforceable?",
-  "How much notice do I need to give?",
-  "Can my landlord raise the rent every year?",
-  "What if I want to keep a cat?",
-  "What does the deposit clause say?",
-];
-const SUGGESTIONS_DE = [
-  "Ist meine Schönheitsreparatur-Klausel wirksam?",
-  "Welche Kündigungsfrist gilt für mich?",
-  "Darf der Vermieter jährlich erhöhen?",
-  "Was, wenn ich eine Katze halten möchte?",
-  "Was sagt die Kautions-Klausel?",
-];
+// Suggestions in all 14 languages
+const SUGGESTIONS: Record<string, string[]> = {
+  en: ["Is my cosmetic repair clause enforceable?", "How much notice do I need to give?", "Can my landlord raise the rent every year?", "What if I want to keep a cat?", "What does the deposit clause say?"],
+  de: ["Ist meine Schönheitsreparatur-Klausel wirksam?", "Welche Kündigungsfrist gilt für mich?", "Darf der Vermieter jährlich erhöhen?", "Was, wenn ich eine Katze halten möchte?", "Was sagt die Kautions-Klausel?"],
+  tr: ["Kozmetik onarım maddem geçerli mi?", "Ne kadar ihbar süresi vermem gerekiyor?", "Ev sahibi her yıl kira artırabilir mi?", "Kedi beslersem ne olur?", "Depozito maddesi ne diyor?"],
+  ru: ["Действует ли пункт о косметическом ремонте?", "Какой срок уведомления мне нужно дать?", "Может ли арендодатель повышать аренду каждый год?", "Что если я хочу завести кошку?", "Что говорит пункт о залоге?"],
+  pl: ["Czy klauzula o remontach jest egzekwowalna?", "Ile wyprzedzenia muszę dać?", "Czy wynajmujący może podnosić czynsz co rok?", "Co jeśli chcę trzymać kota?", "Co mówi klauzula o kaucji?"],
+  ar: ["هل بند الإصلاح التجميلي قابل للتنفيذ؟", "كم مدة الإشعار التي أحتاج لتقديمها؟", "هل يمكن للمالك رفع الإيجار كل عام؟", "ماذا لو أردت تربية قط؟", "ماذا تقول بند الوديعة؟"],
+  ku: ["Maddeya tamîrkirinê derbasdar e?", "Divê min çend meh berê agahdar bikim?", "Ma xwediyê malê dikare kirê her sal bilind bike?", "Ger ez biçûçikekê bixwazim çi dibe?", "Maddeya depozîtoyê çi dibêje?"],
+  sr: ["Je li klauzula o kozmetičnim popravcima izvršiva?", "Koliko unaprijed moram dati otkaz?", "Može li stanodavac svake godine podizati stanarinu?", "Što ako želim držati mačku?", "Što kaže klauzula o depozitu?"],
+  ro: ["Clauza de reparații cosmetice este executorie?", "Cât timp de preaviz trebuie să dau?", "Poate proprietarul mări chiria în fiecare an?", "Ce se întâmplă dacă vreau să țin o pisică?", "Ce spune clauza de depozit?"],
+  it: ["La clausola sulle riparazioni estetiche è esecutiva?", "Quanto preavviso devo dare?", "Il proprietario può aumentare l'affitto ogni anno?", "E se voglio tenere un gatto?", "Cosa dice la clausola sul deposito?"],
+  el: ["Είναι εκτελεστή η ρήτρα αισθητικών επισκευών;", "Πόσο χρόνο προειδοποίησης πρέπει να δώσω;", "Μπορεί ο ιδιοκτήτης να αυξάνει το ενοίκιο κάθε χρόνο;", "Τι γίνεται αν θέλω να έχω γάτα;", "Τι λέει η ρήτρα κατάθεσης;"],
+  sq: ["A është e zbatueshme klauzola e riparimeve kozmetike?", "Sa njoftim paraprak duhet të jap?", "A mund ta rrisë pronari qiranë çdo vit?", "Çfarë ndodh nëse dua të mbaj një mace?", "Çfarë thotë klauzola e depozitës?"],
+  es: ["¿Es ejecutable mi cláusula de reparaciones estéticas?", "¿Cuánto tiempo de preaviso necesito dar?", "¿Puede el propietario subir el alquiler cada año?", "¿Qué pasa si quiero tener un gato?", "¿Qué dice la cláusula de depósito?"],
+  fr: ["Ma clause de réparations esthétiques est-elle exécutoire ?", "De quel préavis ai-je besoin ?", "Le propriétaire peut-il augmenter le loyer chaque année ?", "Et si je veux garder un chat ?", "Que dit la clause de dépôt de garantie ?"],
+};
 
 export default function AssistantPage() {
   const { language } = useAuthStore();
-  const de = language === "de";
-  const t = (en: string, deStr: string) => (de ? deStr : en);
+  const t = makeTFn(language as LangCode);
 
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [selectedContractId, setSelectedContractId] = useState<number | "">("");
@@ -50,7 +52,6 @@ export default function AssistantPage() {
       .then((r) => {
         const list: Contract[] = r.data?.results ?? r.data ?? [];
         setContracts(list);
-        // Prefer first scanned contract
         const first = list.find((c) => c.score !== null) ?? list[0];
         if (first) setSelectedContractId(first.id);
       })
@@ -72,7 +73,6 @@ export default function AssistantPage() {
         const filename = contract?.original_filename ?? "your contract";
         const isScanned = contract?.score !== null;
 
-        // Restore existing message history from the session
         const history: Msg[] = (r.data.messages ?? []).map(
           (m: { role: string; content: string }) => ({ role: m.role as "user" | "assistant", text: m.content })
         );
@@ -80,24 +80,14 @@ export default function AssistantPage() {
         if (history.length > 0) {
           setMessages(history);
         } else if (!isScanned) {
-          setMessages([{
-            role: "assistant",
-            text: de
-              ? `⚠️ "${filename}" wurde noch nicht analysiert. Ich kann allgemeine Fragen beantworten, aber für vertragsbasierte Antworten bitte erst scannen.`
-              : `⚠️ "${filename}" hasn't been scanned yet. I can answer general questions, but for contract-specific answers please scan it first.`,
-          }]);
+          setMessages([{ role: "assistant", text: `⚠️ "${filename}" hasn't been scanned yet. I can answer general questions, but for contract-specific answers please scan it first.` }]);
         } else {
-          setMessages([{
-            role: "assistant",
-            text: de
-              ? `Hallo 👋 Ich bin bereit, Fragen zu "${filename}" zu beantworten.`
-              : `Hi 👋 Ready to answer questions about "${filename}".`,
-          }]);
+          setMessages([{ role: "assistant", text: `Hi 👋 Ready to answer questions about "${filename}".` }]);
         }
       })
       .catch((e) => {
         const detail = e?.response?.data?.detail;
-        setInitError(detail || t("Could not start chat session.", "Chat-Sitzung konnte nicht gestartet werden."));
+        setInitError(detail || "Could not start chat session.");
       })
       .finally(() => setInitLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -110,28 +100,25 @@ export default function AssistantPage() {
     setMessages((m) => [...m, { role: "user", text: q }]);
     setBusy(true);
     try {
-      const res = await api.post(`/chat/${sessionId}/ask/`, {
-        question: q,
-        language,
-      });
+      const res = await api.post(`/chat/${sessionId}/ask/`, { question: q, language });
       setMessages((m) => [...m, { role: "assistant", text: res.data.content }]);
     } catch (e: unknown) {
       const err = e as { response?: { data?: { detail?: string } } };
-      const errMsg = err?.response?.data?.detail || t("Request failed.", "Anfrage fehlgeschlagen.");
+      const errMsg = err?.response?.data?.detail || "Request failed.";
       setMessages((m) => [...m, { role: "assistant", text: `⚠️ ${errMsg}` }]);
     } finally {
       setBusy(false);
     }
   }
 
-  const suggestions = de ? SUGGESTIONS_DE : SUGGESTIONS_EN;
+  const suggestions: string[] = SUGGESTIONS[language] ?? SUGGESTIONS["en"];
   const selectedContract = contracts.find((c) => c.id === selectedContractId);
   const isUnscanned = selectedContract && selectedContract.score === null;
 
   return (
     <AppShell
-      title={t("AI Assistant", "KI-Assistent")}
-      subtitle={t("Grounded in your contract — powered by Gemini.", "Bezieht sich auf deinen Vertrag — powered by Gemini.")}
+      title={t("AI Assistant — Contract Chat")}
+      subtitle="Grounded in your contract — powered by Gemini."
     >
       <div className="grid gap-6 lg:grid-cols-4">
         {/* ---- Chat panel ---- */}
@@ -159,8 +146,10 @@ export default function AssistantPage() {
                 </select>
               ) : (
                 <p className="text-xs text-ink-500">
-                  {t("No contracts — ", "Keine Verträge — ")}
-                  <Link href="/scan" className="font-semibold text-brand-600 underline">{t("upload one", "hochladen")}</Link>
+                  No contracts —{" "}
+                  <Link href="/scan" className="font-semibold text-brand-600 underline">
+                    {t("Upload contract")}
+                  </Link>
                 </p>
               )}
             </div>
@@ -168,9 +157,23 @@ export default function AssistantPage() {
 
           {/* Messages */}
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+            {initLoading && (
+              <div className="flex items-center gap-2 text-sm text-ink-400">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink-300 border-t-brand-500" />
+                {t("Loading…")}
+              </div>
+            )}
             {initError && (
               <div className="rounded-xl border border-danger-100 bg-danger-50 px-4 py-3 text-sm text-danger-700">
                 {initError}
+              </div>
+            )}
+            {isUnscanned && (
+              <div className="rounded-xl border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-700">
+                ⚠️ This contract hasn't been scanned yet.{" "}
+                <Link href={`/scan?id=${selectedContract.id}`} className="font-semibold underline">
+                  Scan first
+                </Link>
               </div>
             )}
             {messages.map((m, i) => (
@@ -180,22 +183,16 @@ export default function AssistantPage() {
                     <span className="text-xs font-bold">AI</span>
                   </div>
                 )}
-                <div
-                  className={`max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                    m.role === "user"
-                      ? "bg-brand-600 text-white"
-                      : "border border-ink-100 bg-surface-muted text-ink-800"
-                  }`}
-                >
+                <div className={`max-w-[78%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  m.role === "user" ? "bg-brand-600 text-white" : "border border-ink-100 bg-surface-muted text-ink-800"
+                }`}>
                   {m.text}
                 </div>
               </div>
             ))}
             {busy && (
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-700 text-white text-xs font-bold">
-                  AI
-                </div>
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-700 text-white text-xs font-bold">AI</div>
                 <div className="rounded-2xl border border-ink-100 bg-surface-muted px-4 py-3">
                   <div className="flex gap-1">
                     <span className="h-2 w-2 animate-bounce rounded-full bg-ink-300" />
@@ -217,19 +214,11 @@ export default function AssistantPage() {
               <input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  !sessionId
-                    ? t("Select a contract to start…", "Vertrag auswählen…")
-                    : t("Ask about your contract…", "Frage zu deinem Vertrag…")
-                }
+                placeholder={!sessionId ? "Select a contract to start…" : t("Ask a question…")}
                 disabled={!sessionId || busy}
                 className="flex-1 bg-transparent px-2 py-2 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none disabled:opacity-50"
               />
-              <button
-                type="submit"
-                disabled={busy || !input.trim() || !sessionId}
-                className="btn-primary px-4 py-2"
-              >
+              <button type="submit" disabled={busy || !input.trim() || !sessionId} className="btn-primary px-4 py-2">
                 <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z" />
                 </svg>
@@ -240,9 +229,9 @@ export default function AssistantPage() {
 
         {/* ---- Suggestions sidebar ---- */}
         <div className="card p-6">
-          <h3 className="section-title">{t("Try asking", "Vorschläge")}</h3>
+          <h3 className="section-title">💡 {t("Send")}</h3>
           <div className="mt-4 flex flex-col gap-2">
-            {suggestions.map((s) => (
+            {suggestions.map((s: string) => (
               <button
                 key={s}
                 onClick={() => send(s)}
@@ -254,7 +243,7 @@ export default function AssistantPage() {
             ))}
           </div>
           <div className="mt-6 rounded-xl bg-warning-50 p-4 text-xs text-warning-700">
-            ⚠️ {t("AI answers are informational, not legal advice.", "KI-Antworten sind informativ, keine Rechtsberatung.")}
+            ⚠️ AI answers are informational, not legal advice.
           </div>
         </div>
       </div>

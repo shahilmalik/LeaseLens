@@ -35,6 +35,22 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// On 401, wipe stale auth and redirect to login.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error?.response?.status === 401 &&
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/login")
+    ) {
+      localStorage.removeItem("leaselens-auth");
+      window.location.href = "/login";
+    }
+    return Promise.reject(error);
+  }
+);
+
 export function clearAuth() {
   if (typeof window !== "undefined") {
     localStorage.removeItem("leaselens-auth");

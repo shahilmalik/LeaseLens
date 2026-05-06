@@ -1,5 +1,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { LangCode } from "./i18n";
+
+export type { LangCode };
 
 export type User = {
   id: number;
@@ -7,19 +10,19 @@ export type User = {
   email: string;
   first_name?: string;
   last_name?: string;
-  profile?: { language: "en" | "de" };
+  profile?: { language: LangCode };
 };
 
 type AuthStore = {
   user: User | null;
   access: string | null;
   refresh: string | null;
-  language: "en" | "de";
+  language: LangCode;
   _hasHydrated: boolean;
 
   setTokens: (access: string, refresh: string) => void;
   setUser: (user: User) => void;
-  setLanguage: (lang: "en" | "de") => void;
+  setLanguage: (lang: LangCode) => void;
   logout: () => void;
   setHasHydrated: (v: boolean) => void;
 };
